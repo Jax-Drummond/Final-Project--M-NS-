@@ -1,6 +1,6 @@
 #pragma once
 #include <memory>
-
+#include "iostream"
 
 class PktDef
 {
@@ -14,7 +14,7 @@ public:
 		RESPONSE
 	};
 
-	enum Direction
+	enum Direction : unsigned char
 	{
 		FORWARD = 1,
 		BACKWARD = 2,
@@ -22,20 +22,22 @@ public:
 		LEFT = 4
 	};
 
+#pragma pack(push, 1)
 	struct Header
 	{
-		unsigned short int PktCount;
-		int Drive : 1;
-		int Status : 1;
-		int Sleep : 1;
-		int Ack : 1;
-		int Padding : 4;
-		unsigned short int Length;
+		unsigned short PktCount;
+		unsigned char Drive : 1;
+		unsigned char Status : 1;
+		unsigned char Sleep : 1;
+		unsigned char Ack : 1;
+		unsigned char Padding : 4;
+		unsigned short Length;
 	} Head;
+#pragma pack(pop)
 
 	struct DriveBody
 	{
-		Direction direction : 8;
+		Direction direction;
 		unsigned char duration;
 		unsigned char speed;
 	} DriveBody;
@@ -52,27 +54,29 @@ public:
 
 	PktDef() : RawBuffer(nullptr)
 	{
-		Head.PktCount = 0;
-		Head.Drive = 0;
-		Head.Status = 0;
-		Head.Sleep = 0;
-		Head.Ack = 0;
-		Head.Padding = 0;
-		Head.Length = 0;
+		CmdPacket.Header.PktCount = 0;
+		CmdPacket.Header.Drive = 0;
+		CmdPacket.Header.Status = 0;
+		CmdPacket.Header.Sleep = 0;
+		CmdPacket.Header.Ack = 0;
+		CmdPacket.Header.Padding = 0;
+		CmdPacket.Header.Length = 0;
 		CmdPacket.Data = nullptr;
 		CmdPacket.CRC = 0;
 	}
 
 	PktDef(char* src)
 	{
-		memcpy(&Head, src, sizeof(Head));
+		memcpy(&CmdPacket.Header, src, sizeof(Head));
 
-		if (Head.Length > BASEPKTSIZE && Head.Ack == 1 && Head.Status = 1)
+		if (CmdPacket.Header.Length > BASEPKTSIZE && CmdPacket.Header.Ack == 1 && CmdPacket.Header.Status == 1)
 		{
-			memcpy(&TelemBody, src + sizeof(Head), Head.Length - BASEPKTSIZE);
+			memcpy(&TelemBody, src + sizeof(Head), CmdPacket.Header.Length - BASEPKTSIZE);
 		}
 
-		memcpy(&CRC, src + Head.Length - 1, sizeof(CRC));
+		memcpy(&CRC, src + CmdPacket.Header.Length - 1, sizeof(CRC));
+
+		CheckCRC(src, CmdPacket.Header.Length - 1);
 	}
 
 	void SetCmd(CmdType type)
@@ -80,38 +84,39 @@ public:
 		switch (type)
 		{
 		case PktDef::DRIVE:
-			Head.Drive = 1;
+			CmdPacket.Header.Drive = 1;
 			break;
 		case PktDef::SLEEP:
-			Head.Sleep = 1;
+			CmdPacket.Header.Sleep = 1;
 			break;
 		case PktDef::RESPONSE:
-			Head.Status = 1;
+			CmdPacket.Header.Status = 1;
 			break;
 		default:
 			break;
 		}
+		CmdPacket.Header.Ack = 1;
 	}
 
 	void SetBodyData(char* buffer, int size)
 	{
 		CmdPacket.Data = new char[size];
 		memcpy(CmdPacket.Data, buffer, size);
-		Head.Length = BASEPKTSIZE + size;
+		CmdPacket.Header.Length = BASEPKTSIZE + size;
 	}
 
 	void SetPktCount(int count)
 	{
-		Head.PktCount = count;
+		CmdPacket.Header.PktCount = count;
 	}
 
 	CmdType GetCmd()
 	{
-		if (Head.Drive)
+		if (CmdPacket.Header.Drive)
 		{
 			return DRIVE;
 		}
-		else if (Head.Sleep)
+		else if (CmdPacket.Header.Sleep)
 		{
 			return SLEEP;
 		}
@@ -123,12 +128,12 @@ public:
 
 	bool GetAck()
 	{
-		return (bool)Head.Ack;
+		return (bool)CmdPacket.Header.Ack;
 	}
 
 	int GetLength()
 	{
-		return Head.Length;
+		return CmdPacket.Header.Length;
 	}
 
 	char* GetBodyData()
@@ -138,29 +143,54 @@ public:
 
 	int GetPktCount()
 	{
-		return Head.PktCount;
+		return CmdPacket.Header.PktCount;
 	}
 
 	bool CheckCRC(char* buffer, int size)
 	{
-		int currentParity = 0;
+		int totalParity = 0;
 
-		// TODO: Binary stuff
-
-		if (currentParity == CRC)
+		for (int i = 0; i < size; ++i)
 		{
-			return true;
+			totalParity += CountOnes((unsigned char)buffer[i]);
 		}
-		return false;
+
+		return totalParity == CRC;
 	}
 
 	void CalcCRC()
 	{
-		int currentParity = 0;
+		int totalParity = 0;
 
-		// TODO: Binary Stuff
+		unsigned char* headerBytes = (unsigned char*)&CmdPacket.Header;
+		for (int i = 0; i < sizeof(Header); ++i)
+		{
+			totalParity += CountOnes(headerBytes[i]);
+		}
 
-		CRC = currentParity;
+		int bodySize = CmdPacket.Header.Length - sizeof(Header) - 1; 
+		for (int i = 0; i < bodySize; ++i)
+		{
+			totalParity += CountOnes((unsigned char)CmdPacket.Data[i]);
+		}
+
+		CRC = totalParity;
+	}
+
+	int GetCRC()
+	{
+		return CRC;
+	}
+
+	int CountOnes(unsigned char byte)
+	{
+		int count = 0;
+		while (byte)
+		{
+			count += byte & 1;
+			byte >>= 1;
+		}
+		return count;
 	}
 
 	char* GenPacket()
@@ -169,16 +199,16 @@ public:
 		{
 			delete[] RawBuffer;
 		}
-		RawBuffer = new char[Head.Length];
+		RawBuffer = new char[CmdPacket.Header.Length];
 
-		memcpy(RawBuffer, &Head, sizeof(Head));
+		memcpy(RawBuffer, &CmdPacket.Header, sizeof(Head));
 
-		if (Head.Length > BASEPKTSIZE)
+		if (CmdPacket.Header.Length > BASEPKTSIZE)
 		{
-			memcpy(RawBuffer + sizeof(Head), &DriveBody, Head.Length - BASEPKTSIZE);
+			memcpy(RawBuffer + sizeof(Head), &DriveBody, CmdPacket.Header.Length - BASEPKTSIZE);
 		}
 
-		memcpy(RawBuffer + Head.Length - 1, &CRC, sizeof(CRC));
+		memcpy(RawBuffer + CmdPacket.Header.Length - 1, &CRC, sizeof(CRC));
 
 		return RawBuffer;
 	}
