@@ -60,7 +60,7 @@ public:
 		CmdPacket.Header.Sleep = 0;
 		CmdPacket.Header.Ack = 0;
 		CmdPacket.Header.Padding = 0;
-		CmdPacket.Header.Length = 0;
+		CmdPacket.Header.Length = BASEPKTSIZE;
 		CmdPacket.Data = nullptr;
 		CmdPacket.CRC = 0;
 	}
@@ -205,7 +205,7 @@ public:
 
 		if (CmdPacket.Header.Length > BASEPKTSIZE)
 		{
-			memcpy(RawBuffer + sizeof(Head), &DriveBody, CmdPacket.Header.Length - BASEPKTSIZE);
+			memcpy(RawBuffer + sizeof(Head), CmdPacket.Data, CmdPacket.Header.Length - BASEPKTSIZE);
 		}
 
 		memcpy(RawBuffer + CmdPacket.Header.Length - 1, &CRC, sizeof(CRC));
