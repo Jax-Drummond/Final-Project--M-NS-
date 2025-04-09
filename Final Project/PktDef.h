@@ -6,7 +6,9 @@ class PktDef
 {
 
 public:
-
+	/// <summary>
+	/// The type of command
+	/// </summary>
 	enum CmdType
 	{
 		DRIVE,
@@ -14,6 +16,9 @@ public:
 		RESPONSE
 	};
 
+	/// <summary>
+	/// The direction you want to move in
+	/// </summary>
 	enum Direction : unsigned char
 	{
 		FORWARD = 1,
@@ -21,8 +26,11 @@ public:
 		RIGHT = 3,
 		LEFT = 4
 	};
-
+	
 #pragma pack(push, 1)
+	/// <summary>
+	/// Header of the packet
+	/// </summary>
 	struct Header
 	{
 		unsigned short PktCount;
@@ -35,6 +43,9 @@ public:
 	} Head;
 #pragma pack(pop)
 
+	/// <summary>
+	/// For use in sending a drive command
+	/// </summary>
 	struct DriveBody
 	{
 		Direction direction;
@@ -42,6 +53,9 @@ public:
 		unsigned char speed;
 	} DriveBody;
 
+	/// <summary>
+	/// For use in getting the status of the bot
+	/// </summary>
 	struct TelemBody
 	{
 		unsigned short int LastPktCounter;
@@ -52,6 +66,9 @@ public:
 		unsigned char LastCmdSpeed;
 	}TelemBody;
 
+	/// <summary>
+	/// Default constructor
+	/// </summary>
 	PktDef() : RawBuffer(nullptr)
 	{
 		CmdPacket.Header.PktCount = 0;
@@ -65,6 +82,10 @@ public:
 		CmdPacket.CRC = 0;
 	}
 
+	/// <summary>
+	/// Creates a packet from recieved data
+	/// </summary>
+	/// <param name="src">The src data</param>
 	PktDef(char* src)
 	{
 		memcpy(&CmdPacket.Header, src, sizeof(Head));
@@ -79,6 +100,10 @@ public:
 		CheckCRC(src, CmdPacket.Header.Length - 1);
 	}
 
+	/// <summary>
+	/// Sets the cmd of the packet
+	/// </summary>
+	/// <param name="type">The type of command</param>
 	void SetCmd(CmdType type)
 	{
 		switch (type)
@@ -98,6 +123,11 @@ public:
 		CmdPacket.Header.Ack = 1;
 	}
 
+	/// <summary>
+	/// Sets the body data of the packet
+	/// </summary>
+	/// <param name="buffer">The data buffer</param>
+	/// <param name="size">The size of the buffer</param>
 	void SetBodyData(char* buffer, int size)
 	{
 		CmdPacket.Data = new char[size];
@@ -105,11 +135,19 @@ public:
 		CmdPacket.Header.Length = BASEPKTSIZE + size;
 	}
 
+	/// <summary>
+	/// Sets the packet count of the buffer
+	/// </summary>
+	/// <param name="count"></param>
 	void SetPktCount(int count)
 	{
 		CmdPacket.Header.PktCount = count;
 	}
 
+	/// <summary>
+	/// Gets the current cmd type of the packet
+	/// </summary>
+	/// <returns>CmdType</returns>
 	CmdType GetCmd()
 	{
 		if (CmdPacket.Header.Drive)
@@ -126,26 +164,48 @@ public:
 		}
 	}
 
+	/// <summary>
+	/// Gets whether or not the packet is acked
+	/// </summary>
+	/// <returns>bool</returns>
 	bool GetAck()
 	{
 		return (bool)CmdPacket.Header.Ack;
 	}
 
+	/// <summary>
+	/// Gets the total size of the packet
+	/// </summary>
+	/// <returns>int</returns>
 	int GetLength()
 	{
 		return CmdPacket.Header.Length;
 	}
 
+	/// <summary>
+	/// Gets the data of the body
+	/// </summary>
+	/// <returns>char*</returns>
 	char* GetBodyData()
 	{
 		return CmdPacket.Data;
 	}
 
+	/// <summary>
+	/// Gets the current pkt count
+	/// </summary>
+	/// <returns>pkt count</returns>
 	int GetPktCount()
 	{
 		return CmdPacket.Header.PktCount;
 	}
 
+	/// <summary>
+	/// Checks a raw buffer with the current crc to see if they match
+	/// </summary>
+	/// <param name="buffer">The raw buffer</param>
+	/// <param name="size">The size of the buffer</param>
+	/// <returns>bool</returns>
 	bool CheckCRC(char* buffer, int size)
 	{
 		int totalParity = 0;
@@ -157,7 +217,10 @@ public:
 
 		return totalParity == CRC;
 	}
-
+	
+	/// <summary>
+	/// Sets the crc based on the bits
+	/// </summary>
 	void CalcCRC()
 	{
 		int totalParity = 0;
@@ -177,11 +240,20 @@ public:
 		CRC = totalParity;
 	}
 
+	/// <summary>
+	///  Gets the current CRC
+	/// </summary>
+	/// <returns>int</returns>
 	int GetCRC()
 	{
 		return CRC;
 	}
 
+	/// <summary>
+	/// Counts the number of 1 bits
+	/// </summary>
+	/// <param name="byte">the byte to count</param>
+	/// <returns>int</returns>
 	int CountOnes(unsigned char byte)
 	{
 		int count = 0;
@@ -193,6 +265,10 @@ public:
 		return count;
 	}
 
+	/// <summary>
+	/// Serializes the Packet
+	/// </summary>
+	/// <returns>char*</returns>
 	char* GenPacket()
 	{
 		if (RawBuffer)
@@ -214,6 +290,9 @@ public:
 	}
 
 private:
+	/// <summary>
+	/// The packet to be sent
+	/// </summary>
 	struct CmdPacket
 	{
 		struct Header Header;
@@ -221,8 +300,16 @@ private:
 		char CRC;
 	} CmdPacket;
 
+	/// <summary>
+	/// The tail of the packet
+	/// </summary>
 	char CRC;
+	/// <summary>
+	/// The raw buffer
+	/// </summary>
 	char* RawBuffer;
-
+	/// <summary>
+	/// The base size of the packet
+	/// </summary>
 	const int BASEPKTSIZE = 6;
 };
