@@ -24,7 +24,7 @@ enum ConnectionType
 	UDP
 };
 
-const int DEFAULT_SIZE = 9; // Don't know yet
+const int DEFAULT_SIZE = 14; // Don't know yet
 
 
 class MySocket
@@ -32,14 +32,14 @@ class MySocket
 private:
 	char* Buffer;
 	// WelcomeSocket and ConnectionSocket go somewhere here
-	SOCKET WelcomeSocket;
-	SOCKET ConnectionSocket;
+	int WelcomeSocket = -1;
+	int ConnectionSocket= - 1;
 	struct sockaddr_in SvrAddr; // Store Connection information
 	SocketType mySocket; // Type of the socket
 	string IPAddr; // IPv4 address
 	int Port; // Port number to be used
 	ConnectionType connectionType; // Defines the Transport layer protocol being used
-	bool bTCPConnect; // Flag to determine if a connection has been established
+	bool bTCPConnect = false; // Flag to determine if a connection has been established
 	int MaxSize; // Stores the maximum number of bytes the buffer is allocated to. Helps prevent overflow and sync issues.
 public:
 	MySocket(SocketType socketType, string Ip, unsigned int port, ConnectionType connectionType, unsigned int bufferSize)
@@ -52,6 +52,26 @@ public:
 		MaxSize = bufferSize <= 0 ? DEFAULT_SIZE : bufferSize;
 		Buffer = new char[MaxSize];
 
+		memset(&SvrAddr, 0, sizeof(SvrAddr));
+		SvrAddr.sin_family = AF_INET;
+		SvrAddr.sin_port = htons(Port);
+		inet_pton(AF_INET, IPAddr.c_str(), &SvrAddr.sin_addr);
+
+		switch (connectionType)
+		{
+		case TCP:
+			ConnectTCP();
+			break;
+		case UDP:
+			ConnectionSocket = socket(AF_INET, SOCK_DGRAM, 0);
+			if (mySocket == SERVER) {
+				bind(ConnectionSocket, (struct sockaddr*)&SvrAddr, sizeof(SvrAddr));
+			}
+			break;
+		default:
+			break;
+		}
+		
 		// Some more stuff I think
 
 	}
@@ -59,6 +79,8 @@ public:
 	~MySocket()
 	{
 		delete[] Buffer;
+		if (WelcomeSocket != -1) close(WelcomeSocket);
+		if (ConnectionSocket != -1) close(ConnectionSocket);
 	}
 
 	/// <summary>
@@ -66,8 +88,29 @@ public:
 	/// </summary>
 	void ConnectTCP()
 	{
-		if (connectionType == UDP) return;
-		// TCP code here
+		if (connectionType == UDP) {
+            cerr << "ConnectTCP() called on a UDP socket." << endl;
+            return;
+        }
+
+        if (mySocket == CLIENT) {
+			ConnectionSocket = socket(AF_INET, SOCK_STREAM, 0);
+			if (connect(ConnectionSocket, (struct sockaddr*)&SvrAddr, sizeof(SvrAddr)) == 0) {
+                bTCPConnect = true;
+            } else {
+                perror("TCP Connect failed");
+            }
+        } else if (mySocket == SERVER) {
+			bind(WelcomeSocket, (struct sockaddr*)&SvrAddr, sizeof(SvrAddr));
+			listen(WelcomeSocket, 1);
+			socklen_t addr_size = sizeof(SvrAddr);
+            ConnectionSocket = accept(WelcomeSocket, (struct sockaddr*)&SvrAddr, &addr_size);
+            if (ConnectionSocket >= 0) {
+                bTCPConnect = true;
+            } else {
+                perror("TCP Accept failed");
+            }
+        }
 	}
 
 	/// <summary>
@@ -76,7 +119,12 @@ public:
 	void DisconnectTCP()
 	{
 		if (connectionType == UDP) return;
-		// TCP code here
+		
+		if (ConnectionSocket != -1) {
+			close(ConnectionSocket);
+			ConnectionSocket = -1;
+		}
+		bTCPConnect = false;
 	}
 
 	/// <summary>
@@ -86,7 +134,12 @@ public:
 	/// <param name="size">The size of the data</param>
 	void SendData(const char* data, int size)
 	{
-		// Send data here
+		if (connectionType == TCP) {
+			send(ConnectionSocket, data, size, 0);
+		}
+		else {
+			sendto(ConnectionSocket, data, size, 0, (struct sockaddr*)&SvrAddr, sizeof(SvrAddr));
+		}
 	}
 
 	/// <summary>
@@ -96,7 +149,22 @@ public:
 	/// <returns>Bytes written</returns>
 	int GetData(char* buffer)
 	{
-		// Things go on here
+		int bytesReceived = 0;
+		memset(Buffer, 0, MaxSize);
+
+		if (connectionType == TCP) {
+			bytesReceived = recv(ConnectionSocket, Buffer, MaxSize, 0);
+		}
+		else {
+			socklen_t addrLen = sizeof(SvrAddr);
+			bytesReceived = recvfrom(ConnectionSocket, Buffer, MaxSize, 0, (struct sockaddr*)&SvrAddr, &addrLen);
+		}
+
+		if (bytesReceived > 0) {
+			memcpy(buffer, Buffer, bytesReceived);
+		}
+
+		return bytesReceived;
 	}
 
 	/// <summary>
@@ -164,9 +232,12 @@ public:
 	/// <param name="type">The type to be set</param>
 	void SetType(SocketType type)
 	{
-		mySocket = type;
+		if (!bTCPConnect) {
+			mySocket = type;
+		}
+		else {
+			cerr << "ERROR: Can't set socket type. Connection already established." << endl;
+		}
 	}
-
-
 
 };
