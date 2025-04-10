@@ -127,6 +127,7 @@
     </Link>
   </ItemDefinitionGroup>
   <ItemGroup>
+    <ClInclude Include="MySocket.h" />
     <ClInclude Include="PktDef.h" />
   </ItemGroup>
   <ItemGroup>
