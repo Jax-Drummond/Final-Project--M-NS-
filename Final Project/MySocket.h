@@ -1,6 +1,8 @@
 #pragma once
 #include <string>
-#include <netinet/in.h>
+#include "sys/socket.h"
+#include "netinet/in.h"
+#include <arpa/inet.h>
 #include "PktDef.h"
 
 using namespace std;
@@ -30,6 +32,8 @@ class MySocket
 private:
 	char* Buffer;
 	// WelcomeSocket and ConnectionSocket go somewhere here
+	SOCKET WelcomeSocket;
+	SOCKET ConnectionSocket;
 	struct sockaddr_in SvrAddr; // Store Connection information
 	SocketType mySocket; // Type of the socket
 	string IPAddr; // IPv4 address
