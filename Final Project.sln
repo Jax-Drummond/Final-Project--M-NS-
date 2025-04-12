@@ -7,6 +7,8 @@ Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "Final Project", "Final Proj
 EndProject
 Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "PktDefUnitTests", "PktDefUnitTests\PktDefUnitTests.vcxproj", "{E7BEFC7A-777B-9EEF-B387-BB08C3911319}"
 EndProject
+Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "MySocketUnitTest", "MySocketUnitTest\MySocketUnitTest.vcxproj", "{36783998-50AC-94A4-F2E4-AA3A1A6029AD}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|x64 = Debug|x64
@@ -31,6 +33,14 @@ Global
 		{E7BEFC7A-777B-9EEF-B387-BB08C3911319}.Release|x64.Build.0 = Release|x64
 		{E7BEFC7A-777B-9EEF-B387-BB08C3911319}.Release|x86.ActiveCfg = Release|Win32
 		{E7BEFC7A-777B-9EEF-B387-BB08C3911319}.Release|x86.Build.0 = Release|Win32
+		{36783998-50AC-94A4-F2E4-AA3A1A6029AD}.Debug|x64.ActiveCfg = Debug|x64
+		{36783998-50AC-94A4-F2E4-AA3A1A6029AD}.Debug|x64.Build.0 = Debug|x64
+		{36783998-50AC-94A4-F2E4-AA3A1A6029AD}.Debug|x86.ActiveCfg = Debug|Win32
+		{36783998-50AC-94A4-F2E4-AA3A1A6029AD}.Debug|x86.Build.0 = Debug|Win32
+		{36783998-50AC-94A4-F2E4-AA3A1A6029AD}.Release|x64.ActiveCfg = Release|x64
+		{36783998-50AC-94A4-F2E4-AA3A1A6029AD}.Release|x64.Build.0 = Release|x64
+		{36783998-50AC-94A4-F2E4-AA3A1A6029AD}.Release|x86.ActiveCfg = Release|Win32
+		{36783998-50AC-94A4-F2E4-AA3A1A6029AD}.Release|x86.Build.0 = Release|Win32
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
