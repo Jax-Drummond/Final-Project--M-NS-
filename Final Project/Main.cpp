@@ -1,5 +1,8 @@
 #include "PktDef.h"
+#include "MySocket.h"
 #include "iostream"
+
+using namespace std;
 
 void main()
 {
@@ -16,6 +19,14 @@ void main()
 
 	pkt.CalcCRC();
 
-	std::cout << pkt.GetCRC() << std::endl;
+	std::cout <<  "CRC: " << pkt.GetCRC() << std::endl;
+
+	MySocket mySocket(SERVER, "127.0.0.1", 98009, TCP, 25);
+
+
+	cout << "IP:" << mySocket.GetIPAddr() << endl;
+	cout << "PORT:" << mySocket.GetPort() << endl;
+
+
 
 }

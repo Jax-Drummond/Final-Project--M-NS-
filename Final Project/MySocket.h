@@ -1,243 +1,191 @@
 #pragma once
 #include <string>
-#include "sys/socket.h"
-#include "netinet/in.h"
-#include <arpa/inet.h>
+#include <cstring>
 #include "PktDef.h"
 
+#ifdef _WIN32
+#include <winsock2.h>
+#include <ws2tcpip.h>
+#pragma comment(lib, "Ws2_32.lib")
+typedef int socklen_t;
+#else
+#include <sys/socket.h>
+#include <netinet/in.h>
+#include <arpa/inet.h>
+#include <unistd.h>
+#include <errno.h>
+#endif
+
 using namespace std;
+
 /// <summary>
 /// The Type of Socket
 /// </summary>
-enum SocketType
-{
-	CLIENT,
-	SERVER
-};
+enum SocketType { CLIENT, SERVER };
 
 /// <summary>
 /// The Type of Connection
 /// </summary>
-enum ConnectionType
-{
-	TCP,
-	UDP
-};
+enum ConnectionType { TCP, UDP };
 
-const int DEFAULT_SIZE = 14; // Don't know yet
+const int DEFAULT_SIZE = 14;
 
-
-class MySocket
-{
+class MySocket {
 private:
-	char* Buffer;
-	// WelcomeSocket and ConnectionSocket go somewhere here
-	int WelcomeSocket = -1;
-	int ConnectionSocket= - 1;
-	struct sockaddr_in SvrAddr; // Store Connection information
-	SocketType mySocket; // Type of the socket
-	string IPAddr; // IPv4 address
-	int Port; // Port number to be used
-	ConnectionType connectionType; // Defines the Transport layer protocol being used
-	bool bTCPConnect = false; // Flag to determine if a connection has been established
-	int MaxSize; // Stores the maximum number of bytes the buffer is allocated to. Helps prevent overflow and sync issues.
-public:
-	MySocket(SocketType socketType, string Ip, unsigned int port, ConnectionType connectionType, unsigned int bufferSize)
-	{
-		mySocket = socketType;
-		IPAddr = Ip;
-		Port = port;
-		this->connectionType = connectionType;
+    char* Buffer;
+    int WelcomeSocket = -1;
+    int ConnectionSocket = -1;
+    struct sockaddr_in SvrAddr;
+    SocketType mySocket;
+    string IPAddr;
+    int Port;
+    ConnectionType connectionType;
+    bool bTCPConnect = false;
+    int MaxSize;
 
-		MaxSize = bufferSize <= 0 ? DEFAULT_SIZE : bufferSize;
-		Buffer = new char[MaxSize];
-
-		memset(&SvrAddr, 0, sizeof(SvrAddr));
-		SvrAddr.sin_family = AF_INET;
-		SvrAddr.sin_port = htons(Port);
-		inet_pton(AF_INET, IPAddr.c_str(), &SvrAddr.sin_addr);
-
-		switch (connectionType)
-		{
-		case TCP:
-			ConnectTCP();
-			break;
-		case UDP:
-			ConnectionSocket = socket(AF_INET, SOCK_DGRAM, 0);
-			if (mySocket == SERVER) {
-				bind(ConnectionSocket, (struct sockaddr*)&SvrAddr, sizeof(SvrAddr));
-			}
-			break;
-		default:
-			break;
-		}
-		
-		// Some more stuff I think
-
-	}
-
-	~MySocket()
-	{
-		delete[] Buffer;
-		if (WelcomeSocket != -1) close(WelcomeSocket);
-		if (ConnectionSocket != -1) close(ConnectionSocket);
-	}
-
-	/// <summary>
-	/// Establish a TCP/IP socket connection
-	/// </summary>
-	void ConnectTCP()
-	{
-		if (connectionType == UDP) {
-            cerr << "ConnectTCP() called on a UDP socket." << endl;
-            return;
+#ifdef _WIN32
+    static bool initialized;
+    static void EnsureWSAStartup() {
+        if (!initialized) {
+            WSADATA wsaData;
+            if (WSAStartup(MAKEWORD(2, 2), &wsaData) != 0) {
+                cerr << "WSAStartup failed!" << endl;
+            }
+            else {
+                initialized = true;
+            }
         }
+    }
+#endif
+
+public:
+    MySocket(SocketType socketType, string Ip, unsigned int port, ConnectionType connectionType, unsigned int bufferSize) {
+#ifdef _WIN32
+        EnsureWSAStartup();
+#endif
+        mySocket = socketType;
+        IPAddr = Ip;
+        Port = port;
+        this->connectionType = connectionType;
+        MaxSize = bufferSize <= 0 ? DEFAULT_SIZE : bufferSize;
+        Buffer = new char[MaxSize];
+
+        memset(&SvrAddr, 0, sizeof(SvrAddr));
+        SvrAddr.sin_family = AF_INET;
+        SvrAddr.sin_port = htons(Port);
+        inet_pton(AF_INET, IPAddr.c_str(), &SvrAddr.sin_addr);
+
+        switch (connectionType) {
+        case TCP: ConnectTCP(); break;
+        case UDP:
+            ConnectionSocket = socket(AF_INET, SOCK_DGRAM, 0);
+            if (mySocket == SERVER) {
+                bind(ConnectionSocket, (struct sockaddr*)&SvrAddr, sizeof(SvrAddr));
+            }
+            break;
+        }
+    }
+
+    ~MySocket() {
+        delete[] Buffer;
+#ifdef _WIN32
+        if (WelcomeSocket != -1) closesocket(WelcomeSocket);
+        if (ConnectionSocket != -1) closesocket(ConnectionSocket);
+#else
+        if (WelcomeSocket != -1) close(WelcomeSocket);
+        if (ConnectionSocket != -1) close(ConnectionSocket);
+#endif
+    }
+
+    void ConnectTCP() {
+        if (connectionType == UDP) return;
 
         if (mySocket == CLIENT) {
-			ConnectionSocket = socket(AF_INET, SOCK_STREAM, 0);
-			if (connect(ConnectionSocket, (struct sockaddr*)&SvrAddr, sizeof(SvrAddr)) == 0) {
+            ConnectionSocket = socket(AF_INET, SOCK_STREAM, 0);
+            if (connect(ConnectionSocket, (struct sockaddr*)&SvrAddr, sizeof(SvrAddr)) == 0) {
                 bTCPConnect = true;
-            } else {
+            }
+            else {
                 perror("TCP Connect failed");
             }
-        } else if (mySocket == SERVER) {
-			bind(WelcomeSocket, (struct sockaddr*)&SvrAddr, sizeof(SvrAddr));
-			listen(WelcomeSocket, 1);
-			socklen_t addr_size = sizeof(SvrAddr);
+        }
+        else if (mySocket == SERVER) {
+            WelcomeSocket = socket(AF_INET, SOCK_STREAM, 0);
+            bind(WelcomeSocket, (struct sockaddr*)&SvrAddr, sizeof(SvrAddr));
+            listen(WelcomeSocket, 1);
+            socklen_t addr_size = sizeof(SvrAddr);
             ConnectionSocket = accept(WelcomeSocket, (struct sockaddr*)&SvrAddr, &addr_size);
             if (ConnectionSocket >= 0) {
                 bTCPConnect = true;
-            } else {
+            }
+            else {
                 perror("TCP Accept failed");
             }
         }
-	}
+    }
 
-	/// <summary>
-	/// Disconnect an established TCP/IP socket connection
-	/// </summary>
-	void DisconnectTCP()
-	{
-		if (connectionType == UDP) return;
-		
-		if (ConnectionSocket != -1) {
-			close(ConnectionSocket);
-			ConnectionSocket = -1;
-		}
-		bTCPConnect = false;
-	}
+    void DisconnectTCP() {
+        if (connectionType == UDP) return;
 
-	/// <summary>
-	/// Used to transmit data over the socket
-	/// </summary>
-	/// <param name="data">The data to send</param>
-	/// <param name="size">The size of the data</param>
-	void SendData(const char* data, int size)
-	{
-		if (connectionType == TCP) {
-			send(ConnectionSocket, data, size, 0);
-		}
-		else {
-			sendto(ConnectionSocket, data, size, 0, (struct sockaddr*)&SvrAddr, sizeof(SvrAddr));
-		}
-	}
+#ifdef _WIN32
+        if (ConnectionSocket != -1) closesocket(ConnectionSocket);
+#else
+        if (ConnectionSocket != -1) close(ConnectionSocket);
+#endif
+        ConnectionSocket = -1;
+        bTCPConnect = false;
+    }
 
-	/// <summary>
-	/// Used to get last recieved data stored in buffer
-	/// </summary>
-	/// <param name="buffer">Where you want it saved</param>
-	/// <returns>Bytes written</returns>
-	int GetData(char* buffer)
-	{
-		int bytesReceived = 0;
-		memset(Buffer, 0, MaxSize);
+    void SendData(const char* data, int size) {
+        if (connectionType == TCP) {
+            send(ConnectionSocket, data, size, 0);
+        }
+        else {
+            sendto(ConnectionSocket, data, size, 0, (struct sockaddr*)&SvrAddr, sizeof(SvrAddr));
+        }
+    }
 
-		if (connectionType == TCP) {
-			bytesReceived = recv(ConnectionSocket, Buffer, MaxSize, 0);
-		}
-		else {
-			socklen_t addrLen = sizeof(SvrAddr);
-			bytesReceived = recvfrom(ConnectionSocket, Buffer, MaxSize, 0, (struct sockaddr*)&SvrAddr, &addrLen);
-		}
+    int GetData(char* buffer) {
+        int bytesReceived = 0;
+        memset(Buffer, 0, MaxSize);
 
-		if (bytesReceived > 0) {
-			memcpy(buffer, Buffer, bytesReceived);
-		}
+        if (connectionType == TCP) {
+            bytesReceived = recv(ConnectionSocket, Buffer, MaxSize, 0);
+        }
+        else {
+            socklen_t addrLen = sizeof(SvrAddr);
+            bytesReceived = recvfrom(ConnectionSocket, Buffer, MaxSize, 0, (struct sockaddr*)&SvrAddr, &addrLen);
+        }
 
-		return bytesReceived;
-	}
+        if (bytesReceived > 0) {
+            memcpy(buffer, Buffer, bytesReceived);
+        }
 
-	/// <summary>
-	/// Gets the configured ip address
-	/// </summary>
-	/// <returns></returns>
-	string GetIPAddr()
-	{
-		return IPAddr;
-	}
+        return bytesReceived;
+    }
 
-	/// <summary>
-	/// Sets the IP address
-	/// </summary>
-	/// <param name="ip">The ip to be set</param>
-	void SetIPAdr(string ip)
-	{
-		if (!bTCPConnect)
-		{
-			IPAddr = ip;
-		}
-		else
-		{
-			cerr << "ERROR: Can't set ip. Connection has already been established." << endl;
-		}
-	}
+    string GetIPAddr() { return IPAddr; }
 
-	/// <summary>
-	/// Sets the port
-	/// </summary>
-	/// <param name="port">The port to be set</param>
-	void SetPort(int port)
-	{
-		if (!bTCPConnect)
-		{
-			Port = port;
-		}
-		else
-		{
-			cerr << "ERROR: Can't set port. Connection has already been established." << endl;
-		}
-	}
+    void SetIPAdr(string ip) {
+        if (!bTCPConnect) IPAddr = ip;
+        else cerr << "ERROR: Can't set IP. Connection already established." << endl;
+    }
 
-	/// <summary>
-	/// Gets the currently set port
-	/// </summary>
-	/// <returns>The port</returns>
-	int GetPort()
-	{
-		return Port;
-	}
+    void SetPort(int port) {
+        if (!bTCPConnect) Port = port;
+        else cerr << "ERROR: Can't set port. Connection already established." << endl;
+    }
 
-	/// <summary>
-	/// Gets the current socket type
-	/// </summary>
-	/// <returns>SocketType</returns>
-	SocketType GetType()
-	{
-		return mySocket;
-	}
+    int GetPort() { return Port; }
 
-	/// <summary>
-	/// Sets the current socket type
-	/// </summary>
-	/// <param name="type">The type to be set</param>
-	void SetType(SocketType type)
-	{
-		if (!bTCPConnect) {
-			mySocket = type;
-		}
-		else {
-			cerr << "ERROR: Can't set socket type. Connection already established." << endl;
-		}
-	}
+    SocketType GetType() { return mySocket; }
 
+    void SetType(SocketType type) {
+        if (!bTCPConnect) mySocket = type;
+        else cerr << "ERROR: Can't set socket type. Connection already established." << endl;
+    }
 };
+
+#ifdef _WIN32
+bool MySocket::initialized = false;
+#endif
