@@ -39,19 +39,22 @@ public:
 		unsigned char Sleep : 1;
 		unsigned char Ack : 1;
 		unsigned char Padding : 4;
-		unsigned short Length;
+		unsigned char Length;
 	} Head;
 #pragma pack(pop)
 
 	/// <summary>
 	/// For use in sending a drive command
 	/// </summary>
+#pragma pack(push, 1)
 	struct DriveBody
 	{
 		Direction direction;
 		unsigned char duration;
 		unsigned char speed;
+		
 	} DriveBody;
+#pragma pack(pop)
 
 	/// <summary>
 	/// For use in getting the status of the bot
@@ -90,9 +93,19 @@ public:
 	{
 		memcpy(&CmdPacket.Header, src, sizeof(Head));
 
-		if (CmdPacket.Header.Length > BASEPKTSIZE && CmdPacket.Header.Ack == 1 && CmdPacket.Header.Status == 1)
-		{
-			memcpy(&TelemBody, src + sizeof(Head), CmdPacket.Header.Length - BASEPKTSIZE);
+		int bodySize = CmdPacket.Header.Length - BASEPKTSIZE;
+
+		if (bodySize != 0) {
+
+			if (CmdPacket.Header.Ack == 1 && CmdPacket.Header.Status == 1)
+			{
+				memcpy(&TelemBody, src + sizeof(Head), bodySize);
+			}
+			else if (CmdPacket.Header.Ack == 1 && CmdPacket.Header.Drive == 1)
+			{
+				CmdPacket.Data = new char[bodySize];
+				memcpy(CmdPacket.Data, src + sizeof(Head), bodySize);
+			}
 		}
 
 		memcpy(&CRC, src + CmdPacket.Header.Length - 1, sizeof(CRC));
@@ -300,6 +313,7 @@ private:
 		char CRC;
 	} CmdPacket;
 
+
 	/// <summary>
 	/// The tail of the packet
 	/// </summary>
@@ -311,5 +325,5 @@ private:
 	/// <summary>
 	/// The base size of the packet
 	/// </summary>
-	const int BASEPKTSIZE = 6;
+	const int BASEPKTSIZE = 4;
 };

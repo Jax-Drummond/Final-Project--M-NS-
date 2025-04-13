@@ -12,20 +12,27 @@ void main()
 
 	struct PktDef::DriveBody body;
 	body.direction = PktDef::FORWARD;
-	body.duration = 10;
+	body.duration = 15;
 	body.speed = 80;
 
-	pkt.SetBodyData((char*)&body, sizeof(PktDef::DriveBody));
+	cout << "body size " << sizeof(body) << endl;
+	pkt.SetBodyData((char*)&body, sizeof(body)); // add 1
 
 	pkt.CalcCRC();
 
-	std::cout <<  "CRC: " << pkt.GetCRC() << std::endl;
+	MySocket mySocket(CLIENT, "127.0.0.1", 59822, UDP, 25);
 
-	MySocket mySocket(SERVER, "127.0.0.1", 98009, TCP, 25);
+	mySocket.SendData(pkt.GenPacket(), pkt.GetLength());
 
+	char RX[5];
 
-	cout << "IP:" << mySocket.GetIPAddr() << endl;
-	cout << "PORT:" << mySocket.GetPort() << endl;
+	mySocket.GetData(RX);
+
+	PktDef pkt2(RX);
+
+	cout << "RX Ack: " << pkt2.GetAck() << endl;
+	cout << "RX Drive: " << to_string(pkt2.Head.Drive) << endl;
+	cout << "RX PktCount: " << pkt2.GetPktCount() << endl;
 
 
 
