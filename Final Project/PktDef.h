@@ -143,6 +143,18 @@ public:
 	/// <param name="size">The size of the buffer</param>
 	void SetBodyData(char* buffer, int size)
 	{
+		if (CmdPacket.Data != nullptr) 
+		{
+			delete[] CmdPacket.Data;
+		}
+
+		if (buffer == nullptr || size <= 0) 
+		{
+			CmdPacket.Data = nullptr;
+			CmdPacket.Header.Length = BASEPKTSIZE;
+			return;
+		}
+
 		CmdPacket.Data = new char[size];
 		memcpy(CmdPacket.Data, buffer, size);
 		CmdPacket.Header.Length = BASEPKTSIZE + size;
@@ -325,5 +337,5 @@ private:
 	/// <summary>
 	/// The base size of the packet
 	/// </summary>
-	const int BASEPKTSIZE = 4;
+	const int BASEPKTSIZE = 5;
 };
