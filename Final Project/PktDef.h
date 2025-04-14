@@ -1,6 +1,8 @@
 #pragma once
 #include <memory>
 #include "iostream"
+#include "string"
+#include <cstring>
 
 class PktDef
 {
@@ -91,12 +93,12 @@ public:
 	/// <param name="src">The src data</param>
 	PktDef(char* src)
 	{
-		memcpy(&CmdPacket.Header, src, sizeof(Head));
+		memcpy(&CmdPacket.Header, src, sizeof(CmdPacket.Header));
 
-		int bodySize = CmdPacket.Header.Length - BASEPKTSIZE;
+		int bodySize = (int)CmdPacket.Header.Length - BASEPKTSIZE;
 
-		if (bodySize != 0) {
-
+		if (bodySize != 0) 
+		{
 			if (CmdPacket.Header.Ack == 1 && CmdPacket.Header.Status == 1)
 			{
 				memcpy(&TelemBody, src + sizeof(Head), bodySize);
@@ -302,7 +304,7 @@ public:
 		}
 		RawBuffer = new char[CmdPacket.Header.Length];
 
-		memcpy(RawBuffer, &CmdPacket.Header, sizeof(Head));
+		memcpy(RawBuffer, &CmdPacket.Header, sizeof(CmdPacket.Header));
 
 		if (CmdPacket.Header.Length > BASEPKTSIZE)
 		{
@@ -312,6 +314,11 @@ public:
 		memcpy(RawBuffer + CmdPacket.Header.Length - 1, &CRC, sizeof(CRC));
 
 		return RawBuffer;
+	}
+
+	int GetStatus()
+	{
+		return CmdPacket.Header.Status;
 	}
 
 private:

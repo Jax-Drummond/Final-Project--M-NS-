@@ -21,6 +21,9 @@
     <ClInclude Include="MySocket.h">
       <Filter>Header Files</Filter>
     </ClInclude>
+    <ClInclude Include="crow_all.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="Main.cpp">

@@ -1,39 +1,121 @@
+#define CROW_MAIN
 #include "PktDef.h"
+#include "crow_all.h"
 #include "MySocket.h"
 #include "iostream"
 
 using namespace std;
 
-void main()
+void loadPage(std::string path, crow::response* res)
 {
-	PktDef pkt;
-	pkt.SetPktCount(1);
-	pkt.SetCmd(PktDef::DRIVE);
+    std::ifstream in(path, std::ifstream::in);
+    if (in)
+    {
+        std::ostringstream contents;
+        contents << in.rdbuf();
+        in.close();
+        res->write(contents.str());
+    }
+    else
+    {
+        res->write("404 Not Found");
+    }
+    res->end();
+}
 
-	struct PktDef::DriveBody body;
-	body.direction = PktDef::FORWARD;
-	body.duration = 15;
-	body.speed = 80;
+void sendScript(std::string filename, crow::response* res)
+{
+    std::ifstream in("../public/scripts/" + filename, std::ifstream::in);
+    if (in)
+    {
+        std::ostringstream contents;
+        contents << in.rdbuf();
+        in.close();
+        res->write(contents.str());
+    }
+    else
+    {
+        res->write("404 Not Found");
+    }
+    res->end();
+}
 
-	cout << "body size " << sizeof(body) << endl;
-	pkt.SetBodyData((char*)&body, sizeof(body)); // add 1
+void sendStyle(std::string filename, crow::response* res)
+{
+    std::ifstream in("../public/styles/" + filename, std::ifstream::in);
+    if (in)
+    {
+        std::ostringstream contents;
+        contents << in.rdbuf();
+        in.close();
+        res->write(contents.str());
+    }
+    else
+    {
+        res->write("404 Not Found");
+    }
+    res->end();
+}
 
-	pkt.CalcCRC();
+void sendImage(std::string filename, crow::response* res)
+{
+    std::ifstream in("../public/images/" + filename, std::ifstream::in);
+    if (in)
+    {
+        std::ostringstream contents;
+        contents << in.rdbuf();
+        in.close();
+        res->write(contents.str());
+    }
+    else
+    {
+        res->write("404 Not Found");
+    }
+    res->end();
+}
 
-	MySocket mySocket(CLIENT, "127.0.0.1", 59822, UDP, 25);
+void loadTextFile(std::string path, crow::response* res)
+{
+    std::ifstream in(path, std::ifstream::in);
+    if (in)
+    {
+        std::ostringstream contents;
+        contents << in.rdbuf();
+        in.close();
+        res->set_header("Content-Type", "text/plain");
+        res->write(contents.str());
+    }
+    else
+    {
+        res->write("404 Not Found");
+    }
+    res->end();
+}
 
-	mySocket.SendData(pkt.GenPacket(), pkt.GetLength());
+int main()
+{
+    crow::SimpleApp app;
 
-	char RX[5];
-
-	mySocket.GetData(RX);
-
-	PktDef pkt2(RX);
-
-	cout << "RX Ack: " << pkt2.GetAck() << endl;
-	cout << "RX Drive: " << to_string(pkt2.Head.Drive) << endl;
-	cout << "RX PktCount: " << pkt2.GetPktCount() << endl;
-
-
-
+    CROW_ROUTE(app, "/")
+        ([](const crow::request& req, crow::response& res)
+            {
+                loadPage("../public/index.html", &res);
+            });
+    CROW_ROUTE(app, "/get_script/<string>")
+        ([](const crow::request& req, crow::response& res, std::string filename)
+            {
+                sendScript(filename, &res);
+            });
+    CROW_ROUTE(app, "/get_style/<string>")
+        ([](const crow::request& req, crow::response& res, std::string filename)
+            {
+                sendStyle(filename, &res);
+            });
+    CROW_ROUTE(app, "/get_image/<string>")
+        ([](const crow::request& req, crow::response& res, std::string filename)
+            {
+                sendImage(filename, &res);
+            });
+    app.port(23500).multithreaded().run();
+    return 1;
 }
