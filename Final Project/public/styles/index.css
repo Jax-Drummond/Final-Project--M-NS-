@@ -1,0 +1,155 @@
+:root {
+  --bg-color: #f2f2f2;
+  --text-color: #333;
+  --form-bg: #ffffff;
+  --input-border: #ccc;
+  --button-bg: #4CAF50;
+  --button-hover-bg: #45a049;
+  --shadow: rgba(0, 0, 0, 0.1);
+}
+
+body.dark {
+  --bg-color: #1e1e1e;
+  --text-color: #f5f5f5;
+  --form-bg: #2c2c2c;
+  --input-border: #555;
+  --button-bg: #008060;
+  --button-hover-bg: #00664d;
+  --shadow: rgba(0, 0, 0, 0.6);
+}
+
+body {
+  background-color: var(--bg-color);
+  color: var(--text-color);
+  font-family: Arial, sans-serif;
+  margin: 0;
+  height: 100vh;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  animation: fadeInBody 1s ease-in;
+  transition: background-color 0.3s ease, color 0.3s ease;
+}
+
+.container {
+  width: 100%;
+  max-width: 500px;
+  animation: fadeInContainer 1.2s ease-in-out;
+}
+
+h2 {
+  color: var(--text-color);
+  text-align: center;
+}
+
+#connectionStatus {
+  color: orange;
+}
+
+#commandStatus {
+  color: orange;
+}
+
+form {
+  background: var(--form-bg);
+  padding: 20px;
+  border-radius: 8px;
+  box-shadow: 0 2px 10px var(--shadow);
+  transition: background 0.3s ease;
+}
+
+label {
+  display: block;
+  margin-top: 10px;
+  font-weight: bold;
+}
+
+input, select, .container button {
+  width: 95%;
+  padding: 8px;
+  margin-top: 5px;
+  margin-bottom: 15px;
+  border-radius: 5px;
+  border: 1px solid var(--input-border);
+  background: inherit;
+  color: inherit;
+  transition: border-color 0.3s ease, background-color 0.3s ease;
+}
+
+.container button {
+  background-color: var(--button-bg);
+  color: white;
+  font-weight: bold;
+  cursor: pointer;
+  transition: background-color 0.3s ease, transform 0.2s;
+}
+
+.container button:hover {
+  background-color: var(--button-hover-bg);
+  transform: scale(1.05);
+}
+
+.hidden {
+  display: none;
+}
+
+.btn-group {
+  display: flex;
+  gap: 10px;
+  margin-top: 10px;
+}
+
+.btn-group button {
+  flex: 1;
+}
+
+/* Animations */
+@keyframes fadeInBody {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+@keyframes fadeInContainer {
+  from {
+    transform: scale(0.95);
+    opacity: 0;
+  }
+  to {
+    transform: scale(1);
+    opacity: 1;
+  }
+}
+
+.slide-in {
+  animation: slideInUp 0.5s ease-out forwards;
+}
+
+@keyframes slideInUp {
+  from {
+    transform: translateY(20px);
+    opacity: 0;
+  }
+  to {
+    transform: translateY(0);
+    opacity: 1;
+  }
+}
+
+/* Toggle button */
+#toggleMode {
+  position: fixed;
+  top: 20px;
+  right: 20px;
+  background: transparent;
+  border: 2px solid var(--button-bg);
+  color: var(--text-color);
+  padding: 8px 12px;
+  border-radius: 6px;
+  cursor: pointer;
+  transition: background-color 0.3s ease, color 0.3s ease;
+}
+
+#toggleMode:hover {
+  background-color: var(--button-bg);
+  color: white;
+}

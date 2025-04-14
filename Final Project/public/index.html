@@ -2,13 +2,60 @@
 <html lang="en">
     <head>
         <meta charset="utf-8">
-        <title>Robot Connect Page</title>
+        <title>Robot Command & Control Gui</title>
         <link rel="stylesheet" href="get_style/index.css">
-        <!-- Add Font Awesome for the shopping cart icon -->
-        <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+        <script src="get_script/index.js"></script>
     </head>
     <body>
-      <H1>Connect to robot</H1>
-      <H1>Here</H1>
+      <button id="toggleMode">Toggle Dark Mode</button>
+      <div class="container">
+        
+        <div id="connectionSection">
+        <h2>Connection Settings</h2>
+        <form id="connectionForm">
+          <label for="ip">IP Address:</label>
+          <input type="text" id="ip" required>
+    
+          <label for="port">Port:</label>
+          <input type="number" id="port" required>
+    
+          <label for="protocol">Protocol:</label>
+          <select id="protocol">
+            <option value="UDP">UDP</option>
+            <option value="TCP">TCP</option>
+          </select>
+    
+          <button type="submit">Connect</button>
+        </form>
+        <p id="connectionStatus"></p>
+      </div>
+    
+        <div id="commandSection" class="hidden">
+          <h2>Command Controls</h2>
+          <form id="commandForm">
+            <label for="direction">Direction:</label>
+            <select id="direction">
+              <option value="1">Forward</option>
+              <option value="2">Backward</option>
+              <option value="4">Left</option>
+              <option value="3">Right</option>
+            </select>
+    
+            <label for="duration">Duration (s):</label>
+            <input type="number" id="duration" min="1" required>
+    
+            <label for="speed">Speed:</label>
+            <input type="number" id="speed" min="1" required>
+    
+            <button type="submit">Send Command</button>
+          </form>
+          <p id="commandStatus"></p>
+    
+          <div class="btn-group">
+            <button onclick="sendSleep()">Sleep</button>
+            <button onclick="requestTelemetry()">Request Telemetry</button>
+          </div>
+        </div>
+      </div>
     </body>
 </html>

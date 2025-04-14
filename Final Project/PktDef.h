@@ -88,7 +88,7 @@ public:
 	}
 
 	/// <summary>
-	/// Creates a packet from recieved data
+	/// Creates a packet from received data
 	/// </summary>
 	/// <param name="src">The src data</param>
 	PktDef(char* src)
@@ -298,6 +298,7 @@ public:
 	/// <returns>char*</returns>
 	char* GenPacket()
 	{
+
 		if (RawBuffer)
 		{
 			delete[] RawBuffer;
