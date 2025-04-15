@@ -170,6 +170,7 @@ int main()
 
                 PktDef rxPkt(buffer);
 
+                pktCount = rxPkt.GetPktCount() + 1;
                 bool correctCRC = rxPkt.CheckCRC(buffer, rxPkt.GetLength() - CRCSIZE); // Minus 1 to not include the CRC
 
                 if(correctCRC)
@@ -202,6 +203,8 @@ int main()
 
                 PktDef rxPkt(buffer);
 
+                pktCount = rxPkt.GetPktCount() + 1;
+
                 CROW_LOG_DEBUG << "First Pkt length " << to_string(rxPkt.GetLength());
 
                 bool correctCRC = rxPkt.CheckCRC(buffer, rxPkt.GetLength() - CRCSIZE); // Minus 1 to not include the CRC
@@ -217,13 +220,26 @@ int main()
                     mainSocket->GetData(buffer);
                     PktDef rxPkt2(buffer);
 
+                    pktCount = rxPkt2.GetPktCount() + 1;
+
                     bool correctCRC2 = rxPkt2.CheckCRC(buffer, rxPkt2.GetLength() - CRCSIZE); // Minus 1 to not include the CRC
                     if(correctCRC2)
                     {
-                        if(!rxPkt2.GetAck())
+                        if(!rxPkt2.GetStatus())
                         {
                             res.code = 400;
                         }
+
+                        res.set_header("Content-Type", "application/json");
+                        res.body.append(
+                            "{\"LPC\":\"" + std::to_string(rxPkt2.TelemBody.LastPktCounter) +
+                            "\", \"hitCount\":\"" + std::to_string(rxPkt2.TelemBody.HitCount) +
+                            "\", \"currentGrade\":\"" + std::to_string(rxPkt2.TelemBody.CurrentGrade) +
+                            "\", \"lastCMD\":\"" + std::to_string(rxPkt2.TelemBody.LastCmd) +
+                            "\", \"lastCMDSpeed\":\"" + std::to_string(rxPkt2.TelemBody.LastCmdSpeed) +
+                            "\", \"lastCMDValue\":\"" + std::to_string(rxPkt2.TelemBody.LastCmdValue) +
+                            "\"}"
+                        );
                         // Set body here
                         CROW_LOG_DEBUG << "Second Pkt length " << to_string(rxPkt2.GetLength());
                         CROW_LOG_DEBUG << "LPC: " << to_string(rxPkt2.TelemBody.LastPktCounter);

@@ -1,3 +1,16 @@
+
+let isCooldown = false;
+
+function startCooldown(ms) {
+  isCooldown = true;
+  setTimeout(() => {
+    isCooldown = false;
+    if(ms > 2000){
+    document.getElementById("commandStatus").innerHTML = `Ready to send another command.`;
+    }
+  }, ms);
+}
+
 function wait(ms) {
   return new Promise(resolve => setTimeout(resolve, ms));
 }
@@ -30,6 +43,7 @@ document.addEventListener("DOMContentLoaded", function () {
         document.getElementById("connectionSection").classList.add("hidden");
         document.getElementById("commandSection").classList.remove("hidden");
         document.getElementById("commandSection").classList.add("slide-in");
+        document.getElementById("commandStatus").innerHTML = "";
         }
       } else
       {
@@ -39,6 +53,9 @@ document.addEventListener("DOMContentLoaded", function () {
 
     document.getElementById("commandForm").addEventListener("submit", async function (e) {
       e.preventDefault();
+
+      if (isCooldown) return;
+
       const direction = document.getElementById("direction").value;
       const duration = document.getElementById("duration").value;
       const speed = document.getElementById("speed").value;
@@ -63,8 +80,9 @@ document.addEventListener("DOMContentLoaded", function () {
         }
         else if(response.status == 200)
         {
-        statusP.innerHTML = "✅ Drive command successful.";
+        statusP.innerHTML = `✅ Drive command successful.</br>You will have to wait ${parseInt(duration) + 1}s before sending more commands.`;
         }
+        startCooldown((parseInt(duration) + 2) * 1000);
       } else
       {
         statusP.innerHTML = "❌ Invalid input.";
@@ -84,7 +102,9 @@ document.addEventListener("DOMContentLoaded", function () {
       if (savedTheme === "dark") {
         document.body.classList.add("dark");
       }
+
     window.sendSleep = async function () {
+      if (isCooldown) return;
       const statusP = document.getElementById("commandStatus");
       let endpoint = "/telecommand?sleep=true";
         statusP.innerHTML = "ℹ️ Sending sleep command...";
@@ -104,15 +124,25 @@ document.addEventListener("DOMContentLoaded", function () {
         else if(response.status == 200)
         {
         statusP.innerHTML = "✅ Sleep command successful.";
+        await wait(2000);
+        document.getElementById("connectionSection").classList.add("slide-in");
+        document.getElementById("connectionSection").classList.remove("hidden");
+        document.getElementById("commandSection").classList.remove("slide-in");
+        document.getElementById("commandSection").classList.add("hidden");
+        document.getElementById("connectionStatus").innerHTML = "";
+        document.getElementById("commandForm").reset();
+        document.getElementById("connectionForm").reset();
         }
+        startCooldown(2000);
     };
 
     window.requestTelemetry = async function () {
+      if (isCooldown) return;
       const statusP = document.getElementById("commandStatus");
       let endpoint = "/telementry_request";
       statusP.innerHTML = "ℹ️ Sending sleep command...";
       const response = await fetch(endpoint, {
-        method: "GET"
+        method: "GET",
       });
 
       if(response.status == 503)
@@ -125,7 +155,13 @@ document.addEventListener("DOMContentLoaded", function () {
         }
         else if(response.status == 200)
         {
-        statusP.innerHTML = "✅ Sleep command successful.";
+        statusP.innerHTML = "✅ Telemetry command successful.";
+        startCooldown(2000);
+        await wait(1000);
+        response.json().then((data) => {
+          console.log(data);
+          statusP.innerHTML = `Last Packet Count: ${data.LPC}</br>Current Grade: ${data.currentGrade}</br>Hit Count: ${data.hitCount}</br>Last Cmd: ${data.lastCMD}</br>Last Cmd Speed: ${data.lastCMDSpeed}</br>Last Cmd Value: ${data.lastCMDValue}`;
+        })
         }
 
     };

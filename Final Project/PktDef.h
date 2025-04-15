@@ -3,6 +3,7 @@
 #include "iostream"
 #include "string"
 #include <cstring>
+#include "crow_all.h"
 
 class PktDef
 {
@@ -99,8 +100,9 @@ public:
 
 		if (bodySize != 0) 
 		{
-			if (CmdPacket.Header.Ack == 1 && CmdPacket.Header.Status == 1)
+			if (CmdPacket.Header.Status == 1)
 			{
+				CROW_LOG_DEBUG << "I AM TELEM";
 				memcpy(&TelemBody, src + sizeof(Head), bodySize);
 			}
 			else if (CmdPacket.Header.Ack == 1 && CmdPacket.Header.Drive == 1)
