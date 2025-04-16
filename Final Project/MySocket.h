@@ -169,6 +169,9 @@ public:
     }
 
     void SendData(const char* data, int size) {
+
+        CROW_LOG_DEBUG << "ConnectionSocket: " << to_string(ConnectionSocket);
+        
         if (connectionType == TCP)
         {
             send(ConnectionSocket, data, size, 0);

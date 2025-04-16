@@ -168,7 +168,6 @@ int main()
 
                 if(mainSocket->GetData(buffer) > 0)
                 {
-
                     PktDef rxPkt(buffer);
 
                     pktCount = rxPkt.GetPktCount() + 1;
@@ -205,14 +204,16 @@ int main()
 
                 char buffer[14];
 
-                if(mainSocket->GetData(buffer) > 0)
+                int bytes = mainSocket->GetData(buffer);
+
+                if(bytes > 0)
                 {
 
                     PktDef rxPkt(buffer);
 
                     pktCount = rxPkt.GetPktCount() + 1;
 
-                    CROW_LOG_DEBUG << "First Pkt length " << to_string(rxPkt.GetLength());
+                    CROW_LOG_DEBUG << "First Pkt length: " << to_string(rxPkt.GetLength());
 
                     bool correctCRC = rxPkt.CheckCRC(buffer, rxPkt.GetLength() - CRCSIZE); // Minus 1 to not include the CRC
 
@@ -222,56 +223,61 @@ int main()
                         {
                             res.code = 400;
                         }
-                        memset(buffer, 0, 14);
 
-                        mainSocket->GetData(buffer);
-                        PktDef rxPkt2(buffer);
-
-                        pktCount = rxPkt2.GetPktCount() + 1;
-
-                        bool correctCRC2 = rxPkt2.CheckCRC(buffer, rxPkt2.GetLength() - CRCSIZE); // Minus 1 to not include the CRC
-                        if(correctCRC2)
+                        if(mainSocket->GetData(buffer) > 0)
                         {
-                            if(!rxPkt2.GetStatus())
+
+                            PktDef rxPkt2(buffer);
+
+                            CROW_LOG_DEBUG << "Pkt Count 2: " << to_string(rxPkt2.GetPktCount());
+
+                            pktCount = rxPkt2.GetPktCount() + 1;
+
+                            bool correctCRC2 = rxPkt2.CheckCRC(buffer, rxPkt2.GetLength() - CRCSIZE); // Minus 1 to not include the CRC
+                            if(correctCRC2)
                             {
-                                res.code = 400;
+                                if(!rxPkt2.GetStatus())
+                                {
+                                    res.code = 400;
+                                }
+
+                                res.set_header("Content-Type", "application/json");
+                                res.body.append(
+                                    "{\"LPC\":\"" + std::to_string(rxPkt2.TelemBody.LastPktCounter) +
+                                    "\", \"hitCount\":\"" + std::to_string(rxPkt2.TelemBody.HitCount) +
+                                    "\", \"currentGrade\":\"" + std::to_string(rxPkt2.TelemBody.CurrentGrade) +
+                                    "\", \"lastCMD\":\"" + std::to_string(rxPkt2.TelemBody.LastCmd) +
+                                    "\", \"lastCMDSpeed\":\"" + std::to_string(rxPkt2.TelemBody.LastCmdSpeed) +
+                                    "\", \"lastCMDValue\":\"" + std::to_string(rxPkt2.TelemBody.LastCmdValue) +
+                                    "\"}"
+                                );
+                                // Set body here
+                                CROW_LOG_DEBUG << "Second Pkt length " << to_string(rxPkt2.GetLength());
+                                CROW_LOG_DEBUG << "LPC: " << to_string(rxPkt2.TelemBody.LastPktCounter);
+                                CROW_LOG_DEBUG << "Hit Count: " << to_string(rxPkt2.TelemBody.HitCount);
+                                CROW_LOG_DEBUG << "Current Grade: " << to_string(rxPkt2.TelemBody.CurrentGrade);
+                                CROW_LOG_DEBUG << "Last Cmd: " << to_string(rxPkt2.TelemBody.LastCmd);
+                                CROW_LOG_DEBUG << "Last Cmd Speed: " << to_string(rxPkt2.TelemBody.LastCmdSpeed);
+                                CROW_LOG_DEBUG << "Last Cmd Value: " << to_string(rxPkt2.TelemBody.LastCmdValue);
+                            }
+                            else
+                            {
+                                res.code = 503;
                             }
 
-                            res.set_header("Content-Type", "application/json");
-                            res.body.append(
-                                "{\"LPC\":\"" + std::to_string(rxPkt2.TelemBody.LastPktCounter) +
-                                "\", \"hitCount\":\"" + std::to_string(rxPkt2.TelemBody.HitCount) +
-                                "\", \"currentGrade\":\"" + std::to_string(rxPkt2.TelemBody.CurrentGrade) +
-                                "\", \"lastCMD\":\"" + std::to_string(rxPkt2.TelemBody.LastCmd) +
-                                "\", \"lastCMDSpeed\":\"" + std::to_string(rxPkt2.TelemBody.LastCmdSpeed) +
-                                "\", \"lastCMDValue\":\"" + std::to_string(rxPkt2.TelemBody.LastCmdValue) +
-                                "\"}"
-                            );
-                            // Set body here
-                            CROW_LOG_DEBUG << "Second Pkt length " << to_string(rxPkt2.GetLength());
-                            CROW_LOG_DEBUG << "LPC: " << to_string(rxPkt2.TelemBody.LastPktCounter);
-                            CROW_LOG_DEBUG << "Hit Count: " << to_string(rxPkt2.TelemBody.HitCount);
-                            CROW_LOG_DEBUG << "Current Grade: " << to_string(rxPkt2.TelemBody.CurrentGrade);
-                            CROW_LOG_DEBUG << "Last Cmd: " << to_string(rxPkt2.TelemBody.LastCmd);
-                            CROW_LOG_DEBUG << "Last Cmd Speed: " << to_string(rxPkt2.TelemBody.LastCmdSpeed);
-                            CROW_LOG_DEBUG << "Last Cmd Value: " << to_string(rxPkt2.TelemBody.LastCmdValue);
                         }
                         else
                         {
                             res.code = 503;
                         }
-
-                    }
-                    else
-                    {
-                        res.code = 503;
-                    }
                 }
-                else
-                {
-                    res.code = 503;
-                }
+            }
+            else
+            {
+                res.code = 503;
+            }
 
+                memset(buffer, 0, 14);
 
                 res.end();
             });

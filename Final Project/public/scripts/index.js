@@ -1,5 +1,35 @@
 
-let isCooldown = false;
+let isCooldown = 0;
+
+let heartbeatInterval = null;
+
+function startHeartbeat() {
+  // Clear any existing interval to avoid duplicates
+  if (heartbeatInterval) clearInterval(heartbeatInterval);
+
+  heartbeatInterval = setInterval(async () => {
+    console.log("🔄 Sending heartbeat...");
+    try {
+      const response = await fetch("/telementry_request", { method: "GET" });
+
+      if (response.ok) {
+        console.log("✅ Heartbeat succeeded");
+      } else {
+        console.warn("⚠️ Heartbeat failed with status:", response.status);
+      }
+    } catch (err) {
+      console.error("❌ Heartbeat error:", err);
+    }
+  }, 60000); // every 30 seconds
+}
+
+function stopHeartbeat() {
+  if (heartbeatInterval) {
+    clearInterval(heartbeatInterval);
+    heartbeatInterval = null;
+    console.log("🛑 Heartbeat stopped");
+  }
+}
 
 function startCooldown(ms) {
   isCooldown = true;
@@ -44,6 +74,8 @@ document.addEventListener("DOMContentLoaded", function () {
         document.getElementById("commandSection").classList.remove("hidden");
         document.getElementById("commandSection").classList.add("slide-in");
         document.getElementById("commandStatus").innerHTML = "";
+
+        startHeartbeat();
         }
       } else
       {
@@ -80,7 +112,7 @@ document.addEventListener("DOMContentLoaded", function () {
         }
         else if(response.status == 200)
         {
-        statusP.innerHTML = `✅ Drive command successful.</br>You will have to wait ${parseInt(duration) + 1}s before sending more commands.`;
+        statusP.innerHTML = `✅ Drive command successful.</br>You will have to wait ${parseInt(duration) + 2}s before sending more commands.`;
         startCooldown((parseInt(duration) + 2) * 1000);
         }
       } else
