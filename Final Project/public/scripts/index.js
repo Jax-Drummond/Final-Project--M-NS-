@@ -81,8 +81,8 @@ document.addEventListener("DOMContentLoaded", function () {
         else if(response.status == 200)
         {
         statusP.innerHTML = `✅ Drive command successful.</br>You will have to wait ${parseInt(duration) + 1}s before sending more commands.`;
-        }
         startCooldown((parseInt(duration) + 2) * 1000);
+        }
       } else
       {
         statusP.innerHTML = "❌ Invalid input.";
@@ -140,7 +140,7 @@ document.addEventListener("DOMContentLoaded", function () {
       if (isCooldown) return;
       const statusP = document.getElementById("commandStatus");
       let endpoint = "/telementry_request";
-      statusP.innerHTML = "ℹ️ Sending sleep command...";
+      statusP.innerHTML = "ℹ️ Sending telem command...";
       const response = await fetch(endpoint, {
         method: "GET",
       });
